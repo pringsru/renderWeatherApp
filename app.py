@@ -404,4 +404,4 @@ app.layout = html.Div(
 
 
 # run the app
-app.run_server(debug=False)
+app.run_server(debug=False, port=10000)
