@@ -404,4 +404,4 @@ app.layout = html.Div(
 
 
 # run the app
-app.run_server(debug=True)
+app.run_server(debug=False)
