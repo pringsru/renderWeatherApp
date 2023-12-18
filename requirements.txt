@@ -3,5 +3,5 @@ dash-bootstrap-components
 numpy
 requests
 pandas
+plotly
 flask
-gunicorn

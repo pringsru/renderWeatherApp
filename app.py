@@ -1,6 +1,7 @@
 # Weather App for Maxwelton Farm
 
 # import modules
+import os
 import dash
 import numpy as np
 from dash import dcc, html, dash_table
@@ -19,19 +20,24 @@ app = dash.Dash(__name__,
                 server=server,
                 external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP]
                 )
-server = app.server
+#server = app.server
 
 # set debug flag
 DEBUG = False
 
 # pull in data
 def get_config():
+    # read location information
     config = configparser.ConfigParser()
     config.read('config.ini')
-    return config['openweathermap']
+    # get API key environment variable
+    # also needs to be stored on the server
+    config['weather']['api'] = os.environ.get('OPENWEATHER_API')
+    return config['weather']
 
 def get_weather_current(lat, long, api_key):
-    # http://api.openweathermap.org/data/2.5/weather?zip=98236&units=imperial&appid=30702a1d85e4575b9742d978ea8733c3
+    # gets current weather at lat, long
+    # returns json weather data
     api_url = "http://api.openweathermap.org/data/2.5/weather?lat={}&lon={}&units=imperial&appid={}".format(lat, long, api_key)
     if DEBUG:
         print(api_url)
@@ -42,7 +48,6 @@ def get_weather_current(lat, long, api_key):
 def get_weather_forecast(lat, long, api_key):
     # gets forecasted weather at lat, long
     # returns json weather data
-    #https://api.openweathermap.org/data/2.5/forecast?lat=47.941409&lon=-122.440749&appid=30702a1d85e4575b9742d978ea8733c3
     api_url = "https://api.openweathermap.org/data/2.5/forecast?lat={}&lon={}&units=imperial&appid={}".format(lat, long, api_key)
     if DEBUG:
         print(api_url)
@@ -65,7 +70,7 @@ def get_weather_forecast_df(config):
     df1['dt_txt'] = df1['dt_txt'].dt.tz_localize('UTC').dt.tz_convert('US/Pacific')
     df1['dt_txt'] = df1['dt_txt'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
-
+    # build result dataframe
     result = pd.concat([
         df1["dt_txt"],
         df2['temp'],
@@ -88,7 +93,7 @@ def est_tide_rise(pressure):
     # takes a barometric pressure and returns an estimated increase in tide due to low pressure
     # returns tide rise in feet
 
-    # slope of -0.3937 in/mPA calculated from
+    # slope of -0.3937 in/mPA calculated from:
     #  tide_rise = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] # inches rise
     #mbar = [1013.003, 1010.463, 1007.923, 1005.383, 1002.843, 1000.303, 997.7631,
     #        995.2233, 992.6832, 990.1431, 987.6033, 985.0631, 982.5233, 979.9832,
@@ -205,7 +210,6 @@ def get_tide_df(config):
 # build web page components
 config = get_config()
 header_component = html.H1(children="Maxwelton Weather Dashboard", style={})
-
 
 def build_cell(df, ind):
     # builds html table cell contents
@@ -352,6 +356,7 @@ def build_tide_comp(df, station_name):
 
     title = "".join(map(str,["Tide at ", station_name]))
     tideFig = px.line(df, x="t", y=["Predicted Height", "Measured Height", "Estimated Height"])
+    tideFig.add_vline(x=datetime.now())
     tideFig.update_layout(
         title_text = title,
         title_x = 0.5,
@@ -359,6 +364,14 @@ def build_tide_comp(df, station_name):
         yaxis_title = "Height MLLW (ft)",
         legend={'title':None},
     )
+    # Legend location top right
+    tideFig.update_layout(legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ))
     # annual max and min tide levels (MLLW: min -4.3',  max 12')
     TIDE_MIN = -4
     TIDE_MAX = 14
@@ -374,6 +387,7 @@ def build_tide_comp(df, station_name):
 
 def build_pressure_comp(df):
     pressFig = px.line(df, x="t", y=["Measured Pressure", "Forecasted Pressure"])
+    pressFig.add_vline(x=datetime.now())
     pressFig.update_layout(
         title_text="Barometric Pressure",
         title_x=0.5,
@@ -381,6 +395,14 @@ def build_pressure_comp(df):
         yaxis_title="mBar",
         legend={'title':None},
      )
+    # Legend location top right
+    pressFig.update_layout(legend=dict(
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="right",
+        x=1
+    ))
     # barometric pressure extremes
     PRESS_MIN = 970
     PRESS_MAX = 1050
@@ -404,5 +426,5 @@ app.layout = html.Div(
 
 
 if __name__ == "__main__":
-  # run the app
-  app.run_server(debug=False)
+    # run the app
+    app.run_server(debug=True)
