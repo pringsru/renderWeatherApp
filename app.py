@@ -403,5 +403,6 @@ app.layout = html.Div(
 #        dbc.Row([dcc.Link("Barometric Pressure Point Forecast",href="https://barometricpressure.app/results?lat=47.94203lng--122.43913"),]),
 
 
-# run the app
-app.run_server(debug=False)
+if __name__ == "__main__":
+  # run the app
+  app.run_server(debug=False)
